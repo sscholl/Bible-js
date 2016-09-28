@@ -1,41 +1,85 @@
 'use strict';
-
 var fs = require('fs');
-
-var books = require('./books');
+var HashMap = require('hashmap');
+var bookData = require('./bookData');
+var books = bookData.books;
 
 class Chapter {
+
     constructor() {}
+
 }
 
 class Book {
-    constructor(number, name, testament) {
-        this.number = number
-        this.name = name;
-        this.testament = testament;
+
+    constructor(bookObj) {
+        this.id = parseInt(bookObj.id);
+        this.name = bookObj.book_name;
+        if (Array.isArray(bookObj.shortcuts))
+            this.shortcuts = bookObj.shortcuts;
+        else
+            this.shortcuts = [];
+        if (bookObj.number && bookData.numbered[bookObj.numbered]) {
+            bookData.numered_add.forEach(function(add){
+                this.shortcuts.push(add.replace('X', bookObj.number) + bookObj.numbered)
+            }, this);
+            bookData.numbered[bookObj.numbered].forEach(function(s){
+                bookData.numered_add.forEach(function(add){
+                    this.shortcuts.push(add.replace('X', bookObj.number) + s)
+                }, this);
+            }, this);
+        } else {
+            this.shortcuts.push(this.name.toLowerCase());
+        }
+        this.testament = bookObj.testament;
     }
+
 };
 
 class Bible {
+
     constructor() {
-        this.books = {};
+        this.books = new HashMap();
+        this.bookIds = new HashMap();
+        this.shortcuts = new HashMap();
     }
-    addBook(number, name, testament) {
-        this.books[number] = new Book(number, name, testament);
-    }
-    readData(books, file) {
-        for (var i = 1; i <= 66; i++) {
-            this.addBook( parseInt(books[i].book_nr), books[i].book_name, books[i].testament);
+
+    getBook(i) {
+        if (Number.isInteger(i)) {
+            return this.books.get(i);
+        } else {
+            return this.books.get(this.bookIds.get(i));
         }
+    }
+
+    // returns number of book, corresonding to the given shortcut
+    searchId(shortcut) {
+        return this.shortcuts.get(shortcut.toLowerCase());
+    }
+
+    addBook(bookObj) {
+        var book = new Book(bookObj);
+        this.books.set(book.id, book);
+        this.bookIds.set(book.name, book.id);
+        book.shortcuts.forEach(function(s) {
+            this.shortcuts.set(s, book.id);
+        }, this);
+    }
+
+    readData(books, file) {
+        books.forEach(function (book) {
+            this.addBook(book);
+        }, this);
+
         var d = fs.readFileSync(file)
             .toString()
             .replace(/[O,N]\|\|/g, '||')
             .replace(/\r/g, '')
             .split("\n");
-        for (i in d) {
-            if (d[i] == "") continue;
+        for (var i in d) {
+            if (d[i] == '') continue;
             var tmp = d[i].split('||');
-            var book = this.books[parseInt(tmp[0])];
+            var book = this.getBook(parseInt(tmp[0]));
             if ((book instanceof Book)) {
                 var chapter = parseInt(tmp[1]);
                 var verse = parseInt(tmp[2]);
@@ -50,9 +94,10 @@ class Bible {
             }
         }
     }
+
 };
 
 var bible = new Bible();
-bible.readData(books, 'Bibles/German__Elberfelder_(1905)__elberfelder1905__LTR.txt');
+bible.readData(books, __dirname + '/Bibles/German__Elberfelder_(1905)__elberfelder1905__LTR.txt');
 
 module.exports = bible;
