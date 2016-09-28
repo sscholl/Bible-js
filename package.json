@@ -1,0 +1,22 @@
+{
+    "name": "Bible-js",
+    "version": "1.0.0",
+    "description": "An repository that adds Javascript handling for https://github.com/getbible/Bibles.",
+    "main": "test.js",
+    "scripts": {
+        "start": "node test.js"
+    },
+    "dependencies": {
+        "lodash": "^3.8.0",
+        "fs": "^0.0.2"
+    },
+    "engines": {
+        "node": "4.6.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/brandonhorst/slack-bible.git"
+    },
+    "license": "GNU-V3",
+    "author": "@sscholl"
+}
