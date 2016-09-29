@@ -1,8 +1,9 @@
 'use strict';
 var fs = require('fs');
 var HashMap = require('hashmap');
-var bookData = require('./bookData');
-var books = bookData.books;
+var booksData = require('./booksData');
+var biblesData = require('./biblesData');
+var books = booksData.books;
 
 class Chapter {
 
@@ -19,12 +20,12 @@ class Book {
             this.shortcuts = bookObj.shortcuts;
         else
             this.shortcuts = [];
-        if (bookObj.number && bookData.numbered[bookObj.numbered]) {
-            bookData.numered_add.forEach(function(add){
+        if (bookObj.number && booksData.numbered[bookObj.numbered]) {
+            booksData.numered_add.forEach(function(add){
                 this.shortcuts.push(add.replace('X', bookObj.number) + bookObj.numbered)
             }, this);
-            bookData.numbered[bookObj.numbered].forEach(function(s){
-                bookData.numered_add.forEach(function(add){
+            booksData.numbered[bookObj.numbered].forEach(function(s){
+                booksData.numered_add.forEach(function(add){
                     this.shortcuts.push(add.replace('X', bookObj.number) + s)
                 }, this);
             }, this);
@@ -38,10 +39,19 @@ class Book {
 
 class Bible {
 
-    constructor() {
+    constructor(bibleObj) {
+        this.id = bibleObj.id;
+        this.name = bibleObj.name;
+        this.language = bibleObj.language;
+        this.direction = bibleObj.direction;
         this.books = new HashMap();
         this.bookIds = new HashMap();
         this.shortcuts = new HashMap();
+        this.loaded = false;
+    }
+
+    getName() {
+        return this.name.replace('_', ' ');
     }
 
     getBook(i) {
@@ -66,38 +76,67 @@ class Bible {
         }, this);
     }
 
-    readData(books, file) {
-        books.forEach(function (book) {
-            this.addBook(book);
-        }, this);
+    readData(file) {
+        if (! this.loaded) {
+            books.forEach(function (book) {
+                this.addBook(book);
+            }, this);
 
-        var d = fs.readFileSync(file)
-            .toString()
-            .replace(/[O,N]\|\|/g, '||')
-            .replace(/\r/g, '')
-            .split("\n");
-        for (var i in d) {
-            if (d[i] == '') continue;
-            var tmp = d[i].split('||');
-            var book = this.getBook(parseInt(tmp[0]));
-            if ((book instanceof Book)) {
-                var chapter = parseInt(tmp[1]);
-                var verse = parseInt(tmp[2]);
-                var text = tmp[3];
+            var d = fs.readFileSync(__dirname + '/Bibles/' + this.language + '__' + this.name + '__' + this.id + '__' + this.direction + '.txt')
+                .toString()
+                .replace(/[O,N]\|\|/g, '||')
+                .replace(/\r/g, '')
+                .split("\n");
+            for (var i in d) {
+                if (d[i] == '') continue;
+                var tmp = d[i].split('||');
+                var book = this.getBook(parseInt(tmp[0]));
+                if ((book instanceof Book)) {
+                    var chapter = parseInt(tmp[1]);
+                    var verse = parseInt(tmp[2]);
+                    var text = tmp[3];
 
-                if (!(book[chapter] instanceof Chapter)) {
-                    book[chapter] = new Chapter();
+                    if (!(book[chapter] instanceof Chapter)) {
+                        book[chapter] = new Chapter();
+                    }
+                    book[chapter][verse] = text;
+                } else {
+                    console.log("book could not be found for string: " + d[i]);
                 }
-                book[chapter][verse] = text;
-            } else {
-                console.log("book could not be found for string: " + d[i]);
             }
+            this.loaded = true;
         }
     }
 
 };
 
-var bible = new Bible();
-bible.readData(books, __dirname + '/Bibles/German__Elberfelder_(1905)__elberfelder1905__LTR.txt');
+class Bibles {
 
-module.exports = bible;
+    constructor() {
+        this.bibles = new HashMap();
+        this.shortcuts = new HashMap();
+        biblesData.forEach(function(b){
+            var bible = new Bible(b);
+            this.bibles.set(b.id, bible);
+            b.shortcuts.forEach(function(s) {
+                this.shortcuts.set(s.toLowerCase(), b.id);
+            }, this);
+        }, this);
+    }
+
+    getBible(b) {
+        var bible = this.bibles.get(this.shortcuts.get(b.toLowerCase()));
+        if (! bible.loaded) {
+            try {
+                bible.readData();
+            } catch (e) {
+                console.log("can not load bible " + b);
+                return undefined;
+            }
+        }
+        return bible;
+    }
+
+}
+
+module.exports = new Bibles();
