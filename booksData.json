@@ -6,7 +6,7 @@
         "chronicles": ["chron", "ch", "chr", "chronika", "chronik"],
         "corinthians": ["cor", "co", "korinther", "kor", "ko"],
         "thessalonians": ["thess", "th", "thes", "thessalonicher"],
-        "timothy ": ["tim", "ti", "timotheus"],
+        "timothy": ["tim", "ti", "timotheus"],
         "peter": ["pet", "pe", "pt", "petrus", "petr"],
         "john": ["jn", "jo", "joh", "jhn", "johannes"]
     },
@@ -466,6 +466,7 @@
         "book_name": "2 Timothy",
         "book_ref": "2 Ti",
         "shortcuts": [],
+	"number": 2,
         "numbered": "timothy",
         "testament": "N"
     },
